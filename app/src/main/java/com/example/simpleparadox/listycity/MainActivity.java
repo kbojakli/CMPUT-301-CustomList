@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -37,9 +38,13 @@ public class MainActivity extends AppCompatActivity {
     CustomList customList;
     String TAG = "Sample";
     Button addCityButton;
+    //new code
+    Button deleteButton;
     EditText addCityEditText;
     EditText addProvinceEditText;
     FirebaseFirestore db;
+    //new code
+    Boolean ifDelete = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
         addCityButton = findViewById(R.id.add_city_button);
         addCityEditText = findViewById(R.id.add_city_field);
         addProvinceEditText = findViewById(R.id.add_province_edit_text);
+        deleteButton = findViewById(R.id.delete_button);
 
         cityList = findViewById(R.id.city_list);
         cityDataList = new ArrayList<>();
@@ -57,6 +63,48 @@ public class MainActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
 
         final CollectionReference collectionReference = db.collection("Cities");
+        //Start of new code
+        deleteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(ifDelete == false){
+                    ifDelete = true;
+                    deleteButton.setText("Cancel");
+                }
+                else {
+                    ifDelete = false;
+                    deleteButton.setText("Delete");
+                }
+
+            }
+        });
+
+        cityList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                if(ifDelete){
+                    deleteButton.setText("Delete");
+                    ifDelete = false;
+                    String cityName = cityDataList.get(position).getCityName();
+                    db.collection("Cities").document(cityName)
+                            .delete()
+                            .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    Log.d(TAG, "DocumentSnapshot successfully deleted");
+                                }
+                            })
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Log.w(TAG, "ERROR deleting document", e);
+                                }
+                            });
+                    cityDataList.remove(position);
+                    cityAdapter.notifyDataSetChanged();
+                }
+            }
+        });
 
         addCityButton.setOnClickListener(new View.OnClickListener() {
             @Override
